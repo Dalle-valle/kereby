@@ -3,8 +3,8 @@ const fs = require("fs");
 const nodemailer = require("nodemailer");
 
 // CONFIG — replace these with your email/app password
-const YOUR_EMAIL = "Danieldalby83@gmail.com";
-const YOUR_PASSWORD = "ftbq fydg knwt knus"; // ⚠️ Use an app-specific password for Gmail
+const YOUR_EMAIL = process.env.YOUR_EMAIL;
+const YOUR_PASSWORD = process.env.YOUR_PASSWORD;
 
 const URL = "https://kerebyudlejning.dk";
 
