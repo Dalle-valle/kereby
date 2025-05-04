@@ -10,7 +10,11 @@ const URL = "https://kerebyudlejning.dk";
 
 (async () => {
   //   const browser = await puppeteer.launch({ headless: "new" }); // set to false if you want to see browser
-  const browser = await puppeteer.launch({ headless: false, slowMo: 50 });
+  const browser = await puppeteer.launch({
+    headless: "new",
+    executablePath: "/usr/bin/chromium-browser",
+  });
+
   const page = await browser.newPage();
 
   // 1. Go to page
