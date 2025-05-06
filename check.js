@@ -5,11 +5,12 @@ const fetch = require("node-fetch");
 const URL = "https://kerebyudlejning.dk";
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 const MAX_MESSAGE_LENGTH = 1800;
+const isGitHub = process.env.GITHUB_ACTIONS === "true";
 
 (async () => {
   const browser = await puppeteer.launch({
     headless: "new",
-    executablePath: "/usr/bin/chromium-browser", // for GitHub Actions
+    ...(isGitHub && { executablePath: "/usr/bin/chromium-browser" }), // Only for GitHub Actions
   });
 
   const page = await browser.newPage();
@@ -39,9 +40,9 @@ const MAX_MESSAGE_LENGTH = 1800;
   if (!listingsLoaded) {
     console.error("❌ Listings still didn't load after retries.");
     const html = await page.content();
-    console.log("🧪 DEBUG HTML BEGIN 🧪\n");
+    console.log("🧪 START DEBUG HTML 🧪");
     console.log(html);
-    console.log("\n🧪 DEBUG HTML END 🧪");
+    console.log("🧪 END DEBUG HTML 🧪");
     await browser.close();
     return;
   }
@@ -92,6 +93,7 @@ const MAX_MESSAGE_LENGTH = 1800;
     console.log("ℹ️ No new listings.");
   }
 
+  // Update seen links
   const allLinks = [...new Set([...knownLinks, ...listings.map((l) => l.link)])];
   fs.writeFileSync(storagePath, JSON.stringify(allLinks, null, 2));
 })();
