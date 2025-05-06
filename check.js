@@ -28,7 +28,7 @@ const MAX_MESSAGE_LENGTH = 1800;
   let retries = 20;
   let listingsLoaded = false;
   while (retries-- > 0 && !listingsLoaded) {
-    await page.waitForTimeout(2000);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     const count = await page.evaluate(() => {
       return document.querySelectorAll(".masonry-item").length;
     });
