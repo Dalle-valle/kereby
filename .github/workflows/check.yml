@@ -2,23 +2,23 @@ name: Kereby Checker
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
-  workflow_dispatch:
+    - cron: "*/10 * * * *" # Every 10 minutes
+  workflow_dispatch: # Allows manual trigger from GitHub
 
 jobs:
   run-checker:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Install Chromium (required for Puppeteer)
+      - name: Install Chromium (for Puppeteer)
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser
@@ -26,8 +26,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run check script
+      - name: Run scraper
         run: node check.js
         env:
-          YOUR_EMAIL: ${{ secrets.YOUR_EMAIL }}
-          YOUR_PASSWORD: ${{ secrets.YOUR_PASSWORD }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
