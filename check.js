@@ -39,8 +39,9 @@ const MAX_MESSAGE_LENGTH = 1800;
   if (!listingsLoaded) {
     console.error("❌ Listings still didn't load after retries.");
     const html = await page.content();
-    fs.writeFileSync("debug.html", html);
-    console.log("🧪 Saved page content to debug.html");
+    console.log("🧪 DEBUG HTML BEGIN 🧪\n");
+    console.log(html);
+    console.log("\n🧪 DEBUG HTML END 🧪");
     await browser.close();
     return;
   }
