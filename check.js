@@ -4,18 +4,18 @@ const fetch = require("node-fetch");
 
 const URL = "https://kerebyudlejning.dk";
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
-const MAX_MESSAGE_LENGTH = 1800; // Discord max: 2000 chars
+const MAX_MESSAGE_LENGTH = 1800;
 
 (async () => {
   const browser = await puppeteer.launch({
     headless: "new",
-    executablePath: "/usr/bin/chromium-browser", // Required for GitHub Actions
+    executablePath: "/usr/bin/chromium-browser", // for GitHub Actions
   });
 
   const page = await browser.newPage();
   await page.goto(URL, { waitUntil: "networkidle2" });
 
-  // ✅ Accept cookies if popup is present
+  // Accept cookies
   try {
     await page.waitForSelector("#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll", { timeout: 5000 });
     await page.click("#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll");
@@ -24,25 +24,28 @@ const MAX_MESSAGE_LENGTH = 1800; // Discord max: 2000 chars
     console.log("⚠️ No cookie popup found or already accepted.");
   }
 
-  // 🔁 Retry until listings load (max 10 tries)
-  let retries = 10;
+  // Retry loading listings
+  let retries = 20;
   let listingsLoaded = false;
   while (retries-- > 0 && !listingsLoaded) {
-    await page.waitForTimeout(2000); // wait 2 seconds
+    await page.waitForTimeout(2000);
     const count = await page.evaluate(() => {
       return document.querySelectorAll(".masonry-item").length;
     });
-    console.log(`🕵️ Found ${count} .masonry-item(s)`);
-    if (count > 5) listingsLoaded = true;
+    console.log(`🕵️ Retry: Found ${count} .masonry-item(s)`);
+    if (count > 0) listingsLoaded = true;
   }
 
   if (!listingsLoaded) {
     console.error("❌ Listings still didn't load after retries.");
+    const html = await page.content();
+    fs.writeFileSync("debug.html", html);
+    console.log("🧪 Saved page content to debug.html");
     await browser.close();
     return;
   }
 
-  // ✅ Scrape listings
+  // Scrape listings
   const listings = await page.evaluate(() => {
     const items = Array.from(document.querySelectorAll(".masonry-item"));
     return items.map((item) => ({
@@ -53,10 +56,9 @@ const MAX_MESSAGE_LENGTH = 1800; // Discord max: 2000 chars
   });
 
   await browser.close();
-
   console.log(`🔍 Found ${listings.length} listing(s).`);
 
-  // ✅ Load previously seen links
+  // Load known links
   let knownLinks = [];
   const storagePath = "seen_links.json";
   if (fs.existsSync(storagePath)) {
@@ -69,7 +71,6 @@ const MAX_MESSAGE_LENGTH = 1800; // Discord max: 2000 chars
   if (newListings.length > 0) {
     console.log(`🚨 Found ${newListings.length} new listing(s). Sending to Discord...`);
 
-    // ✂️ Safely build a message under Discord's limit
     let messageText = "🚨 **New apartment listing(s) found!**\n\n";
     for (const l of newListings) {
       const entry = `**${l.title}**\n${l.address}\n${l.link}\n\n`;
@@ -77,7 +78,6 @@ const MAX_MESSAGE_LENGTH = 1800; // Discord max: 2000 chars
       messageText += entry;
     }
 
-    // 📬 Send to Discord
     const response = await fetch(DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -91,7 +91,6 @@ const MAX_MESSAGE_LENGTH = 1800; // Discord max: 2000 chars
     console.log("ℹ️ No new listings.");
   }
 
-  // ✅ Update seen links
   const allLinks = [...new Set([...knownLinks, ...listings.map((l) => l.link)])];
   fs.writeFileSync(storagePath, JSON.stringify(allLinks, null, 2));
 })();

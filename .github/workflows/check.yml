@@ -2,8 +2,8 @@ name: Kereby Checker
 
 on:
   schedule:
-    - cron: "*/10 * * * *" # Every 10 minutes
-  workflow_dispatch: # Allows manual trigger from GitHub
+    - cron: "*/10 * * * *" # every 10 minutes
+  workflow_dispatch:
 
 jobs:
   run-checker:
@@ -30,3 +30,10 @@ jobs:
         run: node check.js
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Upload debug HTML if exists
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-html
+          path: debug.html
