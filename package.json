@@ -1,16 +1,21 @@
 {
   "name": "kereby-checker",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Automatically checks Kereby listings and sends Discord notifications",
+  "main": "check.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node check.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "puppeteer",
+    "discord",
+    "web-scraping",
+    "automation"
+  ],
+  "author": "Daniel Dalby",
   "license": "ISC",
   "dependencies": {
-    "nodemailer": "^6.10.1",
+    "node-fetch": "^2.7.0",
     "puppeteer": "^24.8.0"
   }
 }
