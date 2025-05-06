@@ -2,8 +2,8 @@ name: Kereby Checker
 
 on:
   schedule:
-    - cron: "*/10 * * * *" # every 10 minutes
-  workflow_dispatch:
+    - cron: "*/10 * * * *" # Runs every 10 minutes
+  workflow_dispatch: # Allow manual run from GitHub UI
 
 jobs:
   run-checker:
@@ -33,7 +33,7 @@ jobs:
 
       - name: Upload debug HTML if exists
         if: always()
-        uses: actions/upload-artifact@5d5ef0f548b0e77ce97dd9336c79fb6946f67c7b
+        uses: actions/upload-artifact@v3
         with:
           name: debug-html
           path: debug.html
