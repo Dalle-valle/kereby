@@ -25,7 +25,25 @@ const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
   // ✅ Wait for listings to load
   try {
-    await page.waitForSelector(".masonry-item", { timeout: 15000 });
+    let retries = 10;
+    let listingsLoaded = false;
+
+    while (retries-- > 0 && !listingsLoaded) {
+      await page.waitForTimeout(2000); // wait 2 seconds
+      const count = await page.evaluate(() => {
+        return document.querySelectorAll(".masonry-item").length;
+      });
+
+      console.log(`🕵️ Found ${count} .masonry-item(s)`);
+
+      if (count > 5) listingsLoaded = true;
+    }
+
+    if (!listingsLoaded) {
+      console.error("❌ Listings still didn't load after retries.");
+      await browser.close();
+      return;
+    }
   } catch (err) {
     console.error("❌ Listings didn't load in time.");
     await browser.close();
@@ -62,7 +80,7 @@ const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
     console.log(`🚨 Found ${newListings.length} new listing(s). Sending to Discord...`);
 
     const content = {
-      content: `🚨 **New apartment listing(s) found!**\n\n${newListings.map((l) => `**${l.title}**\n${l.address}\n${l.link}`).join("\n\n")}`,
+      content: `🚨 Found ${newListings.length} new listings!`,
     };
 
     await fetch(DISCORD_WEBHOOK_URL, {
