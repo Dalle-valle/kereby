@@ -2,8 +2,8 @@ name: Kereby Checker
 
 on:
   schedule:
-    - cron: "*/5 * * * *" # Runs every 10 minutes
-  workflow_dispatch: # Allows manual run from GitHub UI
+    - cron: "*/5 * * * *" # Every 5 minutes
+  workflow_dispatch:
 
 jobs:
   run-checker:

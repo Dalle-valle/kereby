@@ -1,4 +1,5 @@
-require("dotenv").config(); // load .env variables
+require("dotenv").config();
+
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const fetch = require("node-fetch");
@@ -11,7 +12,7 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
 (async () => {
   const browser = await puppeteer.launch({
     headless: "new",
-    ...(isGitHub && { executablePath: "/usr/bin/chromium-browser" }), // Only for GitHub Actions
+    ...(isGitHub && { executablePath: "/usr/bin/chromium-browser" }),
   });
 
   const page = await browser.newPage();
@@ -49,38 +50,58 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
   }
 
   // Scrape listings
-  const listings = await page.evaluate(() => {
+  let listings = await page.evaluate(() => {
     const items = Array.from(document.querySelectorAll(".masonry-item"));
-    return items.map((item) => ({
-      title: item.querySelector("h2")?.innerText.trim() || "No title",
-      address: item.querySelector(".property-teaser__address")?.innerText.trim() || "No address",
-      link: item.querySelector("a")?.href || "No link",
-    }));
+    return items.map((item) => {
+      const headline = item.querySelector("h2")?.innerText.trim() || "No title";
+      const address = item.querySelector(".location")?.innerText.trim().replace(/\n/g, " ") || "No address";
+      const status = item.querySelector(".inactive-message")?.innerText.trim() || "Active";
+      const link = item.querySelector("a")?.href || "";
+      return { headline, address, status, link };
+    });
+  });
+
+  // ✅ Deduplicate based on headline + address
+  const seen = new Set();
+  listings = listings.filter((l) => {
+    const key = `${l.headline} | ${l.address}`.replace(/\s+/g, " ").trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 
   await browser.close();
-  console.log(`🔍 Found ${listings.length} listing(s).`);
+  console.log(`🔍 Found ${listings.length} total listing(s) after deduplication.`);
 
-  // Load known links
-  let knownLinks = [];
-  const storagePath = "seen_links.json";
+  // Filter out "Reserveret" listings
+  const activeListings = listings.filter((l) => l.status !== "Reserveret");
+  console.log(`🟢 ${activeListings.length} active listings after filtering reserved.`);
+
+  // Load previously seen IDs
+  const storagePath = "seen_listings.json";
+  let knownIds = [];
   if (fs.existsSync(storagePath)) {
-    knownLinks = JSON.parse(fs.readFileSync(storagePath, "utf8"));
+    knownIds = JSON.parse(fs.readFileSync(storagePath, "utf8"));
   }
+  const knownSet = new Set(knownIds);
 
-  const knownSet = new Set(knownLinks);
-  const newListings = listings.filter((l) => !knownSet.has(l.link));
+  const newListings = activeListings.filter((l) => {
+    const id = `${l.headline} | ${l.address}`;
+    return !knownSet.has(id);
+  });
 
   if (newListings.length > 0) {
     console.log(`🚨 Found ${newListings.length} new listing(s). Sending to Discord...`);
 
     let messageText = "🚨 **New apartment listing(s) found!**\n\n";
     for (const l of newListings) {
-      const entry = `**${l.title}**\n${l.address}\n${l.link}\n\n`;
+      const entry = `**${l.headline}**\n${l.address}\n${l.link}\n\n`;
       if ((messageText + entry).length > MAX_MESSAGE_LENGTH) break;
       messageText += entry;
     }
+
     console.log("📡 DISCORD_WEBHOOK_URL:", DISCORD_WEBHOOK_URL);
+
     const response = await fetch(DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -94,7 +115,7 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
     console.log("ℹ️ No new listings.");
   }
 
-  // Update seen links
-  const allLinks = [...new Set([...knownLinks, ...listings.map((l) => l.link)])];
-  fs.writeFileSync(storagePath, JSON.stringify(allLinks, null, 2));
+  // Update seen IDs
+  const allIds = [...new Set([...knownIds, ...activeListings.map((l) => `${l.headline} | ${l.address}`)])];
+  fs.writeFileSync(storagePath, JSON.stringify(allIds, null, 2));
 })();
