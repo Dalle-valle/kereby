@@ -1,3 +1,4 @@
+require("dotenv").config(); // load .env variables
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const fetch = require("node-fetch");
@@ -79,7 +80,7 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
       if ((messageText + entry).length > MAX_MESSAGE_LENGTH) break;
       messageText += entry;
     }
-
+    console.log("📡 DISCORD_WEBHOOK_URL:", DISCORD_WEBHOOK_URL);
     const response = await fetch(DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
