@@ -61,7 +61,11 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
     });
   });
 
-  // ✅ Deduplicate based on headline + address
+  // 🐛 Debug: print all listings
+  console.log("📦 Raw listings:");
+  listings.forEach((l, i) => console.log(`#${i + 1}`, l));
+
+  // ✅ Deduplicate by normalized key
   const seen = new Set();
   listings = listings.filter((l) => {
     const key = `${l.headline} | ${l.address}`.replace(/\s+/g, " ").trim().toLowerCase();
@@ -73,8 +77,11 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
   await browser.close();
   console.log(`🔍 Found ${listings.length} total listing(s) after deduplication.`);
 
-  // Filter out "Reserveret" listings
-  const activeListings = listings.filter((l) => l.status !== "Reserveret");
+  // ✅ Filter out reserved listings (status check is now case-insensitive)
+  const activeListings = listings.filter((l) => {
+    const s = (l.status || "").toLowerCase().trim();
+    return !["reserveret", "reserved", "udlejet"].includes(s);
+  });
   console.log(`🟢 ${activeListings.length} active listings after filtering reserved.`);
 
   // Load previously seen IDs
@@ -86,7 +93,7 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
   const knownSet = new Set(knownIds);
 
   const newListings = activeListings.filter((l) => {
-    const id = `${l.headline} | ${l.address}`;
+    const id = `${l.headline} | ${l.address}`.replace(/\s+/g, " ").trim().toLowerCase();
     return !knownSet.has(id);
   });
 
@@ -116,6 +123,6 @@ const isGitHub = process.env.GITHUB_ACTIONS === "true";
   }
 
   // Update seen IDs
-  const allIds = [...new Set([...knownIds, ...activeListings.map((l) => `${l.headline} | ${l.address}`)])];
+  const allIds = [...new Set([...knownIds, ...activeListings.map((l) => `${l.headline} | ${l.address}`.replace(/\s+/g, " ").trim().toLowerCase())])];
   fs.writeFileSync(storagePath, JSON.stringify(allIds, null, 2));
 })();
